@@ -4,14 +4,19 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(wbstats)
+library(shiny)
+library(DT)
+
 
 
 
 ### Time series data (John Hopkins)
 # Read:
 ts <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+
 # Make data long for plotting:
 ts_long <- pivot_longer(ts, `1/22/20`:`3/24/20`, names_to = "Fecha", values_to = "Casos")
+
 # Sum cases by country (adding up smaller subregions) & other fixes:
 ts_long <- ts_long %>% 
     mutate(Fecha = as.Date(Fecha, format = "%m/%d/%y")) %>%
@@ -22,7 +27,8 @@ ts_long <- ts_long %>%
     group_by(Paises) %>%
     mutate(SumaCasos = cumsum(Casos)) %>% 
     ungroup()
-#
+
+# Add column with number of days since first case:
 ts_long <- ts_long %>% 
     ungroup() %>% 
     mutate(hascase = (Casos > 10)) %>% 
@@ -37,6 +43,7 @@ pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018)
 ts_long <- left_join(ts_long, pop_data, by = c("Paises" = "country"))
 ts_long <- ts_long %>% mutate(CasesOverMillion = Casos*1000000/value)
 
+### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
 # country_list <- c("Chile", "Italy", "Poland", "Spain", "US")
 # ts_long <- ts_long %>% filter(Paises %in% country_list)
@@ -46,22 +53,7 @@ ts_long <- ts_long %>% mutate(CasesOverMillion = Casos*1000000/value)
 #     geom_line() +
 #     theme_bw()
 # ggsave("covid19.png", width = 6, height = 4)
-
-
-
-
-
-# Current data
-# rawdata <- fromJSON("https://corona-stats.online?format=json") 
-# df <- rawdata$data %>% flatten() %>% as_tibble()
-# df[ df == "NO DATA" ] <- "NA"
-# 
-# ggplot(df, aes())
-
-library(shiny)
-library(DT)
-
-
+########################################################
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -128,15 +120,15 @@ server <- function(input, output) {
             theme_bw(base_size = 18)
     })
     
-    output$mytable = DT::renderDataTable(
-        df,
-        options = list(
-            scrollX = TRUE,
-            language = list(#url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json',
-                            info = 'Mostrando filas (países) _START_ a la _END_ de un total de _TOTAL_.',
-                            lengthMenu = 'Mostrar _MENU_ filas (países)')
-        )
-    )
+    # output$mytable = DT::renderDataTable(
+    #     df,
+    #     options = list(
+    #         scrollX = TRUE,
+    #         language = list(#url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json',
+    #                         info = 'Mostrando filas (países) _START_ a la _END_ de un total de _TOTAL_.',
+    #                         lengthMenu = 'Mostrar _MENU_ filas (países)')
+    #     )
+    # )
 }
 
 # Run the application 
