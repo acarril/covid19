@@ -60,6 +60,19 @@ df <- left_join(df, pop_data, by = c("Country" = "country")) %>% drop_na(Países
 df <- df %>% mutate(CasosPorMillon = SumaCasos*1000000/Población)
 # Note: some countries don't merge. Check with x <- df %>% group_by(Países) %>% summarise(mean = mean(Población))
 
+# Create dataset only with latest data (for display)
+df_snapshot <- df %>% 
+    # Filter only last date of each country
+    group_by(Países) %>% 
+    arrange(Fecha) %>% 
+    filter(row_number() == n()) %>% 
+    ungroup() %>% 
+    # Select only relevant columns and reorder them
+    select(Países, iso3c, Población, Casos, Muertes) %>% 
+    arrange(-Casos)
+# Extract update date
+updateDate <- max(df$Fecha)
+
 ### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
 # country_list <- c("Chile", "Italy", "Poland", "Spain", "US")
@@ -106,7 +119,7 @@ ui <- fluidPage(
             ),
             # Input: Choose dataset ----
             selectInput("dataset", "Descarga una base de datos:",
-                        choices = c("Serie de tiempo", "Serie de tiempo casos", "Serie de tiempo muertes")),
+                        choices = c("Datos consolidados", "Serie de tiempo", "Serie de tiempo casos", "Serie de tiempo muertes")),
             
             # Button
             downloadButton("downloadData", "Descargar")
@@ -129,6 +142,7 @@ server <- function(input, output) {
     # Reactive value for selected dataset ----
     datasetInput <- reactive({
         switch(input$dataset,
+               "Datos consolidados" = df_snapshot,
                "Serie de tiempo" = df,
                "Serie de tiempo casos" = tsCases,
                "Serie de tiempo muertes" = tsDeaths,
@@ -143,7 +157,7 @@ server <- function(input, output) {
     })
     
     output$mytable = DT::renderDataTable(
-        df,
+        df_snapshot,
         options = list(
             scrollX = TRUE,
             language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json',
