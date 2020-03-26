@@ -12,13 +12,13 @@ library(DT)
 
 ### Time series data (John Hopkins)
 # Read:
-ts <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+tsCases <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
 
 # Make data long for plotting:
-ts_long <- pivot_longer(ts, `1/22/20`:`3/24/20`, names_to = "Fecha", values_to = "Casos")
+tsCases <- pivot_longer(tsCases, `1/22/20`:`3/24/20`, names_to = "Fecha", values_to = "Casos")
 
 # Sum cases by country (adding up smaller subregions) & other fixes:
-ts_long <- ts_long %>% 
+tsCases <- tsCases %>% 
     mutate(Fecha = as.Date(Fecha, format = "%m/%d/%y")) %>%
     rename(Paises = `Country/Region`) %>% 
     group_by(Paises, Fecha) %>% 
@@ -29,7 +29,7 @@ ts_long <- ts_long %>%
     ungroup()
 
 # Add column with number of days since first case:
-ts_long <- ts_long %>% 
+tsCases <- tsCases %>% 
     ungroup() %>% 
     mutate(hascase = (Casos > 10)) %>% 
     group_by(Paises) %>% 
@@ -38,18 +38,18 @@ ts_long <- ts_long %>%
     ungroup()
 
 # Join with population data (World Bank 2018)
-ts_long <- ts_long %>% mutate(Paises = ifelse(Paises == "US", "United States", Paises))
+tsCases <- tsCases %>% mutate(Paises = ifelse(Paises == "US", "United States", Paises))
 pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018)
-ts_long <- left_join(ts_long, pop_data, by = c("Paises" = "country"))
-ts_long <- ts_long %>% mutate(CasesOverMillion = Casos*1000000/value)
+tsCases <- left_join(tsCases, pop_data, by = c("Paises" = "country"))
+tsCases <- tsCases %>% mutate(CasesOverMillion = Casos*1000000/value)
 
 ### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
 # country_list <- c("Chile", "Italy", "Poland", "Spain", "US")
-# ts_long <- ts_long %>% filter(Paises %in% country_list)
+# tsCases <- tsCases %>% filter(Paises %in% country_list)
 
 # Plot
-# ggplot(ts_long, aes(Dias, CasesOverMillion, color = Paises, group = Paises)) + 
+# ggplot(tsCases, aes(Dias, CasesOverMillion, color = Paises, group = Paises)) + 
 #     geom_line() +
 #     theme_bw()
 # ggsave("covid19.png", width = 6, height = 4)
@@ -72,7 +72,7 @@ ui <- fluidPage(
             selectInput(
                 "comparisonCountries",
                 "Países:",
-                choices = unique(ts_long$Paises),
+                choices = unique(tsCases$Paises),
                 selected = "Chile",
                 multiple = TRUE
             ),
@@ -114,7 +114,7 @@ server <- function(input, output) {
     # })
     
     output$myplot = renderPlot({
-        df <- ts_long %>% filter(Paises %in% input$comparisonCountries)
+        df <- tsCases %>% filter(Paises %in% input$comparisonCountries)
         ggplot(df, aes_string(input$xaxis, input$yaxis, color = "Paises", group = "Paises")) + 
             geom_line() +
             theme_bw(base_size = 18)
