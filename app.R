@@ -11,14 +11,20 @@ library(DT)
 
 
 ### Time series data on cases (John Hopkins)
-# Read:
+# Read
 tsCases  <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+tsDeaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
 
-# Make data long for plotting:
+# Make data long for plotting
 tsCases  <- pivot_longer(tsCases,  `1/22/20`:tail(names(tsCases),  1), names_to = "Fecha", values_to = "Casos")
+tsDeaths <- pivot_longer(tsDeaths, `1/22/20`:tail(names(tsDeaths), 1), names_to = "Fecha", values_to = "Muertes")
 
-# Sum cases by country (adding up smaller subregions) & other fixes:
-tsCases <- tsCases %>% 
+# Merge both datasets
+tsDeaths <- tsDeaths %>% select(`Country/Region`, Fecha, Muertes)
+df <- inner_join(tsCases, tsDeaths, by = c("Country/Region", "Fecha"))
+
+# Sum cases by country (adding up smaller subregions) & other fixes
+df <- df %>% 
     mutate(Fecha = as.Date(Fecha, format = "%m/%d/%y")) %>%
     rename(Países = `Country/Region`) %>% 
     group_by(Países, Fecha) %>% 
@@ -28,8 +34,8 @@ tsCases <- tsCases %>%
     mutate(SumaCasos = cumsum(Casos)) %>% 
     ungroup()
 
-# Add column with number of days since first case:
-tsCases <- tsCases %>% 
+# Add column with number of days since first case
+df <- df %>% 
     ungroup() %>% 
     mutate(hascase = (Casos > 10)) %>% 
     group_by(Países) %>% 
@@ -38,10 +44,10 @@ tsCases <- tsCases %>%
     ungroup()
 
 # Join with population data (World Bank 2018)
-tsCases <- tsCases %>% mutate(Países = ifelse(Países == "US", "United States", Países))
+df <- df %>% mutate(Países = ifelse(Países == "US", "United States", Países))
 pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018)
-tsCases <- left_join(tsCases, pop_data, by = c("Países" = "country"))
-tsCases <- tsCases %>% mutate(CasesOverMillion = Casos*1000000/value)
+df <- left_join(df, pop_data, by = c("Países" = "country"))
+df <- df %>% mutate(CasesOverMillion = Casos*1000000/value)
 
 ### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
@@ -72,7 +78,7 @@ ui <- fluidPage(
             selectInput(
                 "comparisonCountries",
                 "Países:",
-                choices = unique(tsCases$Países),
+                choices = unique(df$Países),
                 selected = "Chile",
                 multiple = TRUE
             ),
@@ -114,7 +120,7 @@ server <- function(input, output) {
     # })
     
     output$myplot = renderPlot({
-        df <- tsCases %>% filter(Países %in% input$comparisonCountries)
+        df <- df %>% filter(Países %in% input$comparisonCountries)
         ggplot(df, aes_string(input$xaxis, input$yaxis, color = "Países", group = "Países")) + 
             geom_line() +
             theme_bw(base_size = 18)
