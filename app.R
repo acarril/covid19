@@ -23,15 +23,21 @@ tsDeaths <- pivot_longer(tsDeaths, `1/22/20`:tail(names(tsDeaths), 1), names_to 
 tsDeaths <- tsDeaths %>% select(`Country/Region`, Fecha, Muertes)
 df <- inner_join(tsCases, tsDeaths, by = c("Country/Region", "Fecha"))
 
-# Sum cases by country (adding up smaller subregions) & other fixes
+#  & other fixes
 df <- df %>% 
+    # Change date to proper date format:
     mutate(Fecha = as.Date(Fecha, format = "%m/%d/%y")) %>%
+    # Rename country column:
     rename(Países = `Country/Region`) %>% 
+    # Sum cases/deaths by country (adding up smaller subregions):
     group_by(Países, Fecha) %>% 
-    summarise(Casos = sum(Casos)) %>% 
+    summarise(Casos = sum(Casos),
+              Muertes = sum(Muertes)) %>% 
     ungroup() %>% 
+    # Add column with cumulative sum of cases/deaths
     group_by(Países) %>%
-    mutate(SumaCasos = cumsum(Casos)) %>% 
+    mutate(SumaCasos = cumsum(Casos),
+           SumaMuertes = cumsum(Muertes)) %>% 
     ungroup()
 
 # Add column with number of days since first case
