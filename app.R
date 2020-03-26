@@ -53,7 +53,7 @@ df <- df %>%
 df <- df %>% mutate(Países = ifelse(Países == "US", "United States", Países))
 pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018)
 df <- left_join(df, pop_data, by = c("Países" = "country"))
-df <- df %>% mutate(CasesOverMillion = Casos*1000000/value)
+df <- df %>% mutate(CasosPorMillon = SumaCasos*1000000/value)
 
 ### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
@@ -98,8 +98,8 @@ ui <- fluidPage(
             selectInput(
                 "yaxis",
                 "Variable (eje Y):",
-                choices = c("Casos", "CasesOverMillion"),
-                selected = "Casos",
+                choices = c("Casos", "SumaCasos", "CasosPorMillon", "Muertes", "SumaMuertes"),
+                selected = "SumaCasos",
                 multiple = FALSE
             ),
         ),
