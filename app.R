@@ -5,6 +5,7 @@ library(tidyr)
 library(ggplot2)
 library(wbstats)
 library(shiny)
+library(shinythemes)
 library(DT)
 
 
@@ -70,6 +71,8 @@ df <- df %>% mutate(CasosPorMillon = SumaCasos*1000000/Población)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+    # Theme
+    theme = shinytheme("paper"),
 
     # Application title
     titlePanel("Evolución del COVID-19"),
