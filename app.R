@@ -51,9 +51,10 @@ df <- df %>%
 
 # Join with population data (World Bank 2018)
 df <- df %>% mutate(Países = ifelse(Países == "US", "United States", Países))
-pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018)
+pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018) %>% 
+    select(country, Población = value)
 df <- left_join(df, pop_data, by = c("Países" = "country"))
-df <- df %>% mutate(CasosPorMillon = SumaCasos*1000000/value)
+df <- df %>% mutate(CasosPorMillon = SumaCasos*1000000/Población)
 
 ### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
