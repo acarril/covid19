@@ -59,7 +59,7 @@ tsCases <- tsCases %>% mutate(CasesOverMillion = Casos*1000000/value)
 ui <- fluidPage(
 
     # Application title
-    titlePanel("COVID-19"),
+    titlePanel("Evolución del COVID-19"),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
