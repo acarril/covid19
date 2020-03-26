@@ -4,6 +4,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(wbstats)
+library(countrycode)
 library(shiny)
 library(shinythemes)
 library(DT)
@@ -29,14 +30,14 @@ df <- df %>%
     # Change date to proper date format:
     mutate(Fecha = as.Date(Fecha, format = "%m/%d/%y")) %>%
     # Rename country column:
-    rename(Países = `Country/Region`) %>% 
+    rename(Country = `Country/Region`) %>% 
     # Sum cases/deaths by country (adding up smaller subregions):
-    group_by(Países, Fecha) %>% 
+    group_by(Country, Fecha) %>% 
     summarise(Casos = sum(Casos),
               Muertes = sum(Muertes)) %>% 
     ungroup() %>% 
     # Add column with cumulative sum of cases/deaths
-    group_by(Países) %>%
+    group_by(Country) %>%
     mutate(SumaCasos = cumsum(Casos),
            SumaMuertes = cumsum(Muertes)) %>% 
     ungroup()
@@ -45,17 +46,19 @@ df <- df %>%
 df <- df %>% 
     ungroup() %>% 
     mutate(hascase = (Casos > 10)) %>% 
-    group_by(Países) %>% 
+    group_by(Country) %>% 
     mutate(Días = cumsum(hascase)) %>% 
     select(-hascase) %>% 
     ungroup()
 
 # Join with population data (World Bank 2018)
-df <- df %>% mutate(Países = ifelse(Países == "US", "United States", Países))
+df <- df %>% mutate(Country = ifelse(Country == "US", "United States", Country))
 pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018) %>% 
-    select(country, Población = value)
-df <- left_join(df, pop_data, by = c("Países" = "country"))
+    select(country, iso3c, Población = value)
+pop_data$Países <- countrycode(pop_data$iso3c, origin = 'iso3c', destination = 'un.name.es')
+df <- left_join(df, pop_data, by = c("Country" = "country")) %>% drop_na(Países)
 df <- df %>% mutate(CasosPorMillon = SumaCasos*1000000/Población)
+# Note: some countries don't merge. Check with x <- df %>% group_by(Países) %>% summarise(mean = mean(Población))
 
 ### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
@@ -101,19 +104,36 @@ ui <- fluidPage(
                 selected = "SumaCasos",
                 multiple = FALSE
             ),
+            # Input: Choose dataset ----
+            selectInput("dataset", "Descarga una base de datos:",
+                        choices = c("Consolidado", "tsCases", "tsDeaths")),
+            
+            # Button
+            downloadButton("downloadData", "Descargar")
         ),
         
 
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("myplot"),
-           DT::dataTableOutput("mytable")
+            tabsetPanel(
+                tabPanel("Explora", plotOutput("myplot"), DT::dataTableOutput("mytable")),
+                tabPanel("Más información", plotOutput("myplot2"))
+            )
         )
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
+    
+    # Reactive value for selected dataset ----
+    datasetInput <- reactive({
+        switch(input$dataset,
+               "Consolidado" = df,
+               "tsCases" = tsCases,
+               "tsDeaths" = tsDeaths,
+               )
+    })
     
     output$myplot = renderPlot({
         df <- df %>% filter(Países %in% input$comparisonCountries)
@@ -130,6 +150,16 @@ server <- function(input, output) {
                             info = 'Mostrando filas (países) _START_ a la _END_ de un total de _TOTAL_.',
                             lengthMenu = 'Mostrar _MENU_ filas (países)')
         )
+    )
+    
+    # Downloadable csv of selected dataset ----
+    output$downloadData <- downloadHandler(
+        filename = function() {
+            paste(input$dataset, ".csv", sep = "")
+        },
+        content = function(file) {
+            write.csv(datasetInput(), file, row.names = FALSE)
+        }
     )
 }
 
