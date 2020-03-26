@@ -20,11 +20,11 @@ tsCases <- pivot_longer(tsCases, `1/22/20`:`3/24/20`, names_to = "Fecha", values
 # Sum cases by country (adding up smaller subregions) & other fixes:
 tsCases <- tsCases %>% 
     mutate(Fecha = as.Date(Fecha, format = "%m/%d/%y")) %>%
-    rename(Paises = `Country/Region`) %>% 
-    group_by(Paises, Fecha) %>% 
+    rename(Países = `Country/Region`) %>% 
+    group_by(Países, Fecha) %>% 
     summarise(Casos = sum(Casos)) %>% 
     ungroup() %>% 
-    group_by(Paises) %>%
+    group_by(Países) %>%
     mutate(SumaCasos = cumsum(Casos)) %>% 
     ungroup()
 
@@ -32,24 +32,24 @@ tsCases <- tsCases %>%
 tsCases <- tsCases %>% 
     ungroup() %>% 
     mutate(hascase = (Casos > 10)) %>% 
-    group_by(Paises) %>% 
-    mutate(Dias = cumsum(hascase)) %>% 
+    group_by(Países) %>% 
+    mutate(Días = cumsum(hascase)) %>% 
     select(-hascase) %>% 
     ungroup()
 
 # Join with population data (World Bank 2018)
-tsCases <- tsCases %>% mutate(Paises = ifelse(Paises == "US", "United States", Paises))
+tsCases <- tsCases %>% mutate(Países = ifelse(Países == "US", "United States", Países))
 pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018)
-tsCases <- left_join(tsCases, pop_data, by = c("Paises" = "country"))
+tsCases <- left_join(tsCases, pop_data, by = c("Países" = "country"))
 tsCases <- tsCases %>% mutate(CasesOverMillion = Casos*1000000/value)
 
 ### Code below is now incorporated in the app itself ###
 # Filter data by countries in focus:
 # country_list <- c("Chile", "Italy", "Poland", "Spain", "US")
-# tsCases <- tsCases %>% filter(Paises %in% country_list)
+# tsCases <- tsCases %>% filter(Países %in% country_list)
 
 # Plot
-# ggplot(tsCases, aes(Dias, CasesOverMillion, color = Paises, group = Paises)) + 
+# ggplot(tsCases, aes(Días, CasesOverMillion, color = Países, group = Países)) + 
 #     geom_line() +
 #     theme_bw()
 # ggsave("covid19.png", width = 6, height = 4)
@@ -72,15 +72,15 @@ ui <- fluidPage(
             selectInput(
                 "comparisonCountries",
                 "Países:",
-                choices = unique(tsCases$Paises),
+                choices = unique(tsCases$Países),
                 selected = "Chile",
                 multiple = TRUE
             ),
             selectInput(
                 "xaxis",
                 "Período (eje X):",
-                choices = c("Fecha", "Dias"),
-                selected = "Dias",
+                choices = c("Fecha", "Días"),
+                selected = "Días",
                 multiple = FALSE
             ),
             selectInput(
@@ -114,8 +114,8 @@ server <- function(input, output) {
     # })
     
     output$myplot = renderPlot({
-        df <- tsCases %>% filter(Paises %in% input$comparisonCountries)
-        ggplot(df, aes_string(input$xaxis, input$yaxis, color = "Paises", group = "Paises")) + 
+        df <- tsCases %>% filter(Países %in% input$comparisonCountries)
+        ggplot(df, aes_string(input$xaxis, input$yaxis, color = "Países", group = "Países")) + 
             geom_line() +
             theme_bw(base_size = 18)
     })
