@@ -106,7 +106,7 @@ ui <- fluidPage(
             ),
             # Input: Choose dataset ----
             selectInput("dataset", "Descarga una base de datos:",
-                        choices = c("Consolidado", "tsCases", "tsDeaths")),
+                        choices = c("Serie de tiempo", "Serie de tiempo casos", "Serie de tiempo muertes")),
             
             # Button
             downloadButton("downloadData", "Descargar")
@@ -129,9 +129,9 @@ server <- function(input, output) {
     # Reactive value for selected dataset ----
     datasetInput <- reactive({
         switch(input$dataset,
-               "Consolidado" = df,
-               "tsCases" = tsCases,
-               "tsDeaths" = tsDeaths,
+               "Serie de tiempo" = df,
+               "Serie de tiempo casos" = tsCases,
+               "Serie de tiempo muertes" = tsDeaths,
                )
     })
     
