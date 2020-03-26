@@ -10,12 +10,12 @@ library(DT)
 
 
 
-### Time series data (John Hopkins)
+### Time series data on cases (John Hopkins)
 # Read:
-tsCases <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+tsCases  <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
 
 # Make data long for plotting:
-tsCases <- pivot_longer(tsCases, `1/22/20`:`3/24/20`, names_to = "Fecha", values_to = "Casos")
+tsCases  <- pivot_longer(tsCases,  `1/22/20`:tail(names(tsCases),  1), names_to = "Fecha", values_to = "Casos")
 
 # Sum cases by country (adding up smaller subregions) & other fixes:
 tsCases <- tsCases %>% 
