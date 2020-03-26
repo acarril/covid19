@@ -77,11 +77,6 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            # sliderInput("bins",
-            #             "Number of bins:",
-            #             min = 1,
-            #             max = 50,
-            #             value = 30),
             selectInput(
                 "comparisonCountries",
                 "Países:",
@@ -109,22 +104,13 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
            plotOutput("myplot"),
-           # DT::dataTableOutput("mytable")
+           DT::dataTableOutput("mytable")
         )
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-
-    # output$distPlot <- renderPlot({
-    #     # generate bins based on input$bins from ui.R
-    #     x    <- faithful[, 2]
-    #     bins <- seq(min(x), max(x), length.out = input$bins + 1)
-    # 
-    #     # draw the histogram with the specified number of bins
-    #     hist(x, breaks = bins, col = 'darkgray', border = 'white')
-    # })
     
     output$myplot = renderPlot({
         df <- df %>% filter(Países %in% input$comparisonCountries)
@@ -133,15 +119,15 @@ server <- function(input, output) {
             theme_bw(base_size = 18)
     })
     
-    # output$mytable = DT::renderDataTable(
-    #     df,
-    #     options = list(
-    #         scrollX = TRUE,
-    #         language = list(#url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json',
-    #                         info = 'Mostrando filas (países) _START_ a la _END_ de un total de _TOTAL_.',
-    #                         lengthMenu = 'Mostrar _MENU_ filas (países)')
-    #     )
-    # )
+    output$mytable = DT::renderDataTable(
+        df,
+        options = list(
+            scrollX = TRUE,
+            language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json',
+                            info = 'Mostrando filas (países) _START_ a la _END_ de un total de _TOTAL_.',
+                            lengthMenu = 'Mostrar _MENU_ filas (países)')
+        )
+    )
 }
 
 # Run the application 
