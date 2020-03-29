@@ -68,7 +68,8 @@ df_snapshot <- df %>%
     filter(row_number() == n()) %>% 
     ungroup() %>% 
     # Select only relevant columns and reorder them
-    select(Países, iso3c, Población, Casos, Muertes) %>% 
+    select(Países, iso3c, Población, SumaCasos, SumaMuertes) %>%
+    rename(Casos = SumaCasos, Muertes = SumaMuertes) %>% 
     arrange(-Casos)
 # Extract update date
 updateDate <- max(df$Fecha)
@@ -135,6 +136,8 @@ ui <- fluidPage(
         )
     )
 )
+
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
