@@ -35,14 +35,14 @@ df <- df %>%
     group_by(Country, Fecha) %>% 
     summarise(Casos = sum(Casos),
               Muertes = sum(Muertes)) %>% 
-    ungroup() %>% 
-    # Add column with cumulative sum of cases/deaths
-    group_by(Country) %>%
-    mutate(SumaCasos = cumsum(Casos),
-           SumaMuertes = cumsum(Muertes)) %>% 
-    ungroup()
+    ungroup() # %>% 
+    # # Add column with cumulative sum of cases/deaths
+    # group_by(Country) %>%
+    # mutate(SumaCasos = cumsum(Casos),
+    #        SumaMuertes = cumsum(Muertes)) %>% 
+    # ungroup()
 
-# Add column with number of days since first case
+ # Add column with number of days since first case
 df <- df %>% 
     ungroup() %>% 
     mutate(hascase = (Casos > 10)) %>% 
@@ -57,7 +57,7 @@ pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018) %>%
     select(country, iso3c, Población = value)
 pop_data$Países <- countrycode(pop_data$iso3c, origin = 'iso3c', destination = 'un.name.es')
 df <- left_join(df, pop_data, by = c("Country" = "country")) %>% drop_na(Países)
-df <- df %>% mutate(CasosPorMillon = SumaCasos*1000000/Población)
+df <- df %>% mutate(CasosPorMillon = Casos*1000000/Población)
 # Note: some countries don't merge. Check with x <- df %>% group_by(Países) %>% summarise(mean = mean(Población))
 
 # Create dataset only with latest data (for display)
@@ -68,8 +68,7 @@ df_snapshot <- df %>%
     filter(row_number() == n()) %>% 
     ungroup() %>% 
     # Select only relevant columns and reorder them
-    select(Países, iso3c, Población, SumaCasos, SumaMuertes) %>%
-    rename(Casos = SumaCasos, Muertes = SumaMuertes) %>% 
+    select(Países, iso3c, Población, Casos, Muertes) %>%
     arrange(-Casos)
 # Extract update date
 updateDate <- max(df$Fecha)
@@ -114,8 +113,8 @@ ui <- fluidPage(
             selectInput(
                 "yaxis",
                 "Variable (eje Y):",
-                choices = c("Casos", "SumaCasos", "CasosPorMillon", "Muertes", "SumaMuertes"),
-                selected = "SumaCasos",
+                choices = c("Casos", "CasosPorMillon", "Muertes"),
+                selected = "Casos",
                 multiple = FALSE
             ),
             # Input: Choose dataset ----
