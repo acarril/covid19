@@ -55,7 +55,8 @@ pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018) %>%
     select(country, iso3c, Población = value)
 pop_data$Países <- countrycode(pop_data$iso3c, origin = 'iso3c', destination = 'un.name.es')
 df <- left_join(df, pop_data, by = c("Country" = "country")) %>% drop_na(Países)
-df <- df %>% mutate(CasosPorMillon = Casos*1000000/Población)
+df <- df %>% mutate(CasosPorMillon = Casos*1000000/Población,
+                    MuertesPorMillon = Muertes*1000000/Población)
 # Note: some countries don't merge. Check with x <- df %>% group_by(Países) %>% summarise(mean = mean(Población))
 
 # Create dataset only with latest data (for display)
@@ -72,15 +73,10 @@ df_snapshot <- df %>%
 updateDate <- max(df$Fecha)
 
 ### Code below is now incorporated in the app itself ###
-# Filter data by countries in focus:
-# country_list <- c("Chile", "Italy", "Poland", "Spain", "US")
-# tsCases <- tsCases %>% filter(Países %in% country_list)
+df <- df %>% rename(`Casos por millón de habitantes` = CasosPorMillon,
+                    `Muertes por millón de habitantes` = MuertesPorMillon
+                    )
 
-# Plot
-# ggplot(tsCases, aes(Días, CasesOverMillion, color = Países, group = Países)) + 
-#     geom_line() +
-#     theme_bw()
-# ggsave("covid19.png", width = 6, height = 4)
 ########################################################
 
 # Define UI for application that draws a histogram
@@ -111,7 +107,7 @@ ui <- fluidPage(
             selectInput(
                 "yaxis",
                 "Variable (eje Y):",
-                choices = c("Casos", "CasosPorMillon", "Muertes"),
+                choices = c("Casos", "`Casos por millón de habitantes`", "`Muertes por millón de habitantes`", "Muertes"),
                 selected = "Casos",
                 multiple = FALSE
             ),
