@@ -146,7 +146,9 @@ server <- function(input, output) {
     })
     
     output$myplot = renderPlot({
-        df <- df %>% filter(Países %in% input$comparisonCountries)
+        df <- df %>% 
+            filter(Países %in% input$comparisonCountries) %>% 
+            filter(Casos != 0)
         ggplot(df, aes_string(input$xaxis, input$yaxis, color = "Países", group = "Países")) + 
             geom_line() +
             theme_bw(base_size = 18)
