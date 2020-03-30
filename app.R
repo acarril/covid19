@@ -10,8 +10,6 @@ library(shinythemes)
 library(DT)
 
 
-
-
 ### Time series data on cases (John Hopkins)
 # Read
 tsCases  <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
@@ -22,25 +20,24 @@ tsCases  <- pivot_longer(tsCases,  `1/22/20`:tail(names(tsCases),  1), names_to 
 tsDeaths <- pivot_longer(tsDeaths, `1/22/20`:tail(names(tsDeaths), 1), names_to = "Fecha", values_to = "Muertes")
 
 # Merge both datasets
-tsDeaths <- tsDeaths %>% select(`Country/Region`, Fecha, Muertes)
-df <- inner_join(tsCases, tsDeaths, by = c("Country/Region", "Fecha"))
+tsDeaths <- tsDeaths %>% select(`Country/Region`, `Province/State`, Fecha, Muertes)
+df <- inner_join(tsCases, tsDeaths, by = c("Country/Region", "Province/State", "Fecha"))
 
 #  & other fixes
 df <- df %>% 
     # Change date to proper date format:
     mutate(Fecha = as.Date(Fecha, format = "%m/%d/%y")) %>%
     # Rename country column:
-    rename(Country = `Country/Region`) %>% 
+    rename(Country = `Country/Region`, State = `Province/State`) %>% 
+    # Consolidate country and state names:
+    mutate(State = case_when(Country == "China" ~ "China")) %>% 
+    mutate(Country = coalesce(State, Country)) %>% 
+    # select(-State) %>% 
     # Sum cases/deaths by country (adding up smaller subregions):
-    group_by(Country, Fecha) %>% 
+    group_by(Country, Fecha) %>%
     summarise(Casos = sum(Casos),
-              Muertes = sum(Muertes)) %>% 
-    ungroup() # %>% 
-    # # Add column with cumulative sum of cases/deaths
-    # group_by(Country) %>%
-    # mutate(SumaCasos = cumsum(Casos),
-    #        SumaMuertes = cumsum(Muertes)) %>% 
-    # ungroup()
+              Muertes = sum(Muertes)) %>%
+    ungroup()
 
  # Add column with number of days since first case
 df <- df %>% 
@@ -52,6 +49,7 @@ df <- df %>%
     ungroup()
 
 # Join with population data (World Bank 2018)
+df <- df %>% mutate(Country = ifelse(Country == "US", "United States", Country))
 df <- df %>% mutate(Country = ifelse(Country == "US", "United States", Country))
 pop_data <- wb(indicator = "SP.POP.TOTL", startdate = 2018, enddate = 2018) %>% 
     select(country, iso3c, Población = value)
@@ -100,7 +98,7 @@ ui <- fluidPage(
                 "comparisonCountries",
                 "Países:",
                 choices = unique(df$Países),
-                selected = "Chile",
+                selected = c("Chile", "Francia", "Italia", "Polonia", "España"),
                 multiple = TRUE
             ),
             selectInput(
